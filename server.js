@@ -47,8 +47,12 @@ async function padTo43(buf) {
 app.post('/api/convert', upload.single('file'), async (req, res) => {
   try {
     if (!req.file) return res.status(400).json({ error: 'No file provided' });
-    if (!req.file.originalname.toLowerCase().endsWith('.heic')) {
-      return res.status(400).json({ error: 'Not a HEIC file' });
+    const origLower = req.file.originalname.toLowerCase();
+    const isHeic = origLower.endsWith('.heic');
+    const isPng  = origLower.endsWith('.png');
+    const isJpeg = origLower.endsWith('.jpg') || origLower.endsWith('.jpeg');
+    if (!isHeic && !isPng && !isJpeg) {
+      return res.status(400).json({ error: 'Unsupported input format (use HEIC, PNG, or JPEG)' });
     }
 
     const fmt = (req.body.format || 'PNG').toUpperCase();
@@ -60,9 +64,14 @@ app.post('/api/convert', upload.single('file'), async (req, res) => {
     const maxSize = parseInt(req.body.max_size) > 0 ? parseInt(req.body.max_size) : null;
     const pad = req.body.pad === 'true';
 
-    // Decode HEIC via heic-convert (handles HEVC on all platforms)
-    const pngBuf = await heicConvert({ buffer: req.file.buffer, format: 'PNG' });
-    let image = sharp(Buffer.from(pngBuf));
+    // Decode HEIC via heic-convert; PNG/JPEG go straight to sharp
+    let image;
+    if (isHeic) {
+      const pngBuf = await heicConvert({ buffer: req.file.buffer, format: 'PNG' });
+      image = sharp(Buffer.from(pngBuf));
+    } else {
+      image = sharp(req.file.buffer);
+    }
 
     if (maxSize) {
       image = image.resize(maxSize, maxSize, { fit: 'inside', withoutEnlargement: true });
@@ -84,7 +93,7 @@ app.post('/api/convert', upload.single('file'), async (req, res) => {
       mimeType = 'image/png';
       ext = 'png';
     } else {
-      finalBuf = await sharp(buf).webp({ quality }).toBuffer();
+      finalBuf = await sharp(buf).webp({ quality, effort: 6 }).toBuffer();
       mimeType = 'image/webp';
       ext = 'webp';
     }

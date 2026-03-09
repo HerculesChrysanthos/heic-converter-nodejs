@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>HEIC Converter</title>
+<title>Image Converter</title>
 <style>
   @import url('https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&family=Syne:wght@400;700;800&display=swap');
 
@@ -449,9 +449,9 @@
 <button class="theme-btn" id="theme-btn">&#9728; Light</button>
 <div class="container">
   <header>
-    <div class="tag">// image utility</div>
-    <h1>HEIC<br><span>Converter</span></h1>
-    <p class="subtitle">batch convert .heic &rarr; png / jpeg / webp</p>
+    <div class="tag">// image converter</div>
+    <h1>Image<br><span>Converter</span></h1>
+    <p class="subtitle">batch convert heic / png / jpeg &rarr; png / jpeg / webp</p>
   </header>
 
   <div class="server-status">
@@ -493,9 +493,9 @@
 
   <div class="dropzone" id="dropzone">
     <div class="drop-icon">&#128193;</div>
-    <div class="drop-title">Drop HEIC files here</div>
-    <div class="drop-sub">or <span>click to browse</span> &mdash; multiple files supported</div>
-    <input type="file" id="file-input" accept=".heic,.HEIC" multiple>
+    <div class="drop-title">Drop images here</div>
+    <div class="drop-sub">HEIC, PNG, JPEG &mdash; or <span>click to browse</span> &mdash; multiple files supported</div>
+    <input type="file" id="file-input" accept=".heic,.HEIC,.png,.PNG,.jpg,.JPG,.jpeg,.JPEG" multiple>
   </div>
 
   <div id="file-list"></div>
@@ -595,7 +595,7 @@
   dropzone.addEventListener('drop', e => {
     e.preventDefault();
     dropzone.classList.remove('drag-over');
-    addFiles([...e.dataTransfer.files].filter(f => f.name.toLowerCase().endsWith('.heic')));
+    addFiles([...e.dataTransfer.files].filter(f => /\.(heic|png|jpe?g)$/i.test(f.name)));
   });
 
   fileInput.addEventListener('change', () => { addFiles([...fileInput.files]); fileInput.value = ''; });
@@ -627,8 +627,9 @@
     files.forEach((f, i) => {
       const item = document.createElement('div');
       item.className = 'file-item';
+      const inputExt = f.name.split('.').pop().toUpperCase();
       item.innerHTML = `
-        <span class="file-badge">HEIC</span>
+        <span class="file-badge">${inputExt}</span>
         <span class="file-name">${f.name}</span>
         <span class="file-size">${formatSize(f.size)}</span>
         <span class="file-status">${statusIcon(f)}</span>
@@ -709,7 +710,7 @@
           const cd = res.headers.get('Content-Disposition') || '';
           const match = cd.match(/filename="([^"]+)"/);
           const ext = selectedFormat === 'JPEG' ? 'jpg' : selectedFormat.toLowerCase();
-          files[i].outputName = match ? match[1] : f.name.replace(/\.heic$/i, '.' + ext);
+          files[i].outputName = match ? match[1] : f.name.replace(/\.[^.]+$/, '.' + ext);
           files[i].objectUrl = URL.createObjectURL(blob);
           files[i].status = 'done';
           addLog(`\u2713  ${f.name}  \u2192  ${files[i].outputName}`, 'success');
